@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home</title>
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+    <div class="navbar">
+        <h1>Medicine Store</h1>
+        <div class="nav-links">
+            <span id="welcomeText">Loading...</span>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </div>
+    <div class="main-content">
+        <h2>Available Medicines</h2>
+        <div id="medicineList" class="medicine-grid"></div>
+    </div>
+    <script>
+        async function loadUser() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = 'login.HTML';
+                    return;
+                }
+
+                const res = await fetch("http://localhost:3000/auth/me", {
+                    method: "GET",
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: "include"
+                });
+
+                const data = await res.json();
+                if (data.user) {
+                    document.getElementById("welcomeText").textContent = "Welcome " + data.user.NAME;
+                } else {
+                    window.location.href = 'login.HTML';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById("welcomeText").textContent = "Cannot connect to server";
+            }
+        }
+
+        async function loadMedicines() {
+            try {
+                const res = await fetch("http://localhost:3000/medicine", {
+                    method: "GET"
+                });
+
+                const data = await res.json();
+                const medicineList = document.getElementById('medicineList');
+                
+                if (data.data && data.data.length > 0) {
+                    medicineList.innerHTML = data.data.map(med => `
+                        <div class="medicine-card">
+                            <h3>${med.NAME}</h3>
+                            <p><strong>Price:</strong> $${med.PRICE}</p>
+                            <p><strong>Stock:</strong> ${med.STOCK}</p>
+                            <p><strong>Description:</strong> ${med.DESCRIPTION || 'N/A'}</p>
+                            <p><strong>Expiry:</strong> ${med.EXPIRY_DATE || 'N/A'}</p>
+                            <button onclick="addToCart(${med.ID})">Add to Cart</button>
+                        </div>
+                    `).join('');
+                } else {
+                    medicineList.innerHTML = '<p>No medicines available</p>';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('medicineList').innerHTML = '<p>Error loading medicines</p>';
+            }
+        }
+
+        function addToCart(medicineId) {
+            alert('Medicine added to cart! (Cart functionality coming soon)');
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = 'login.HTML';
+        });
+
+        loadUser();
+        loadMedicines();
+    </script>
+</body>
+</html>
