@@ -1,0 +1,28 @@
+<html>
+<head>
+<title>Login</title>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="container">
+    <form id="loginForm" class="form-card">
+    <h2>Login</h2>
+    <div class="input-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" required/>
+        <span id="loginEmailErr" class="error"></span>
+    </div>
+    <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" required minlength="6"/>
+        <span id="loginPasswordErr" class="error"></span>   
+    </div>     
+    <button type="submit">Login</button>
+    <div class="switch">
+        Don't have an account? <a href="signup.HTML">Sign Up</a>
+    </div>
+    </form>    
+</div>
+<script src="login.js"></script>
+</body>
+</html>
