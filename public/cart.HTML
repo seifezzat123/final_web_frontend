@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Cart</title>
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+    <div class="navbar">
+        <h1>Medicine Store</h1>
+        <div class="nav-links">
+            <a href="home.HTML">Home</a>
+            <a href="cart.HTML">Cart</a>
+            <span id="welcomeText">Loading...</span>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </div>
+    <div class="main-content">
+        <h2>My Cart</h2>
+        <div id="cartList" class="cart-container"></div>
+        <div id="cartTotal" class="cart-total"></div>
+        <button id="checkoutBtn" class="checkout-btn" style="display:none;">Proceed to Checkout</button>
+    </div>
+    <script>
+        async function loadUser() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = 'login.HTML';
+                    return;
+                }
+
+                const res = await fetch("http://localhost:3000/auth/me", {
+                    method: "GET",
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: "include"
+                });
+
+                const data = await res.json();
+                if (data.user) {
+                    document.getElementById("welcomeText").textContent = "Welcome " + data.user.NAME;
+                } else {
+                    window.location.href = 'login.HTML';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById("welcomeText").textContent = "Cannot connect to server";
+            }
+        }
+
+        async function loadCart() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch("http://localhost:3000/cart/my-cart", {
+                    method: "GET",
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await res.json();
+                const cartList = document.getElementById('cartList');
+                const cartTotal = document.getElementById('cartTotal');
+                const checkoutBtn = document.getElementById('checkoutBtn');
+                
+                if (data.data && data.data.length > 0) {
+                    let total = 0;
+                    cartList.innerHTML = data.data.map(item => {
+                        total += item.PRICE * item.QUANTITY;
+                        return `
+                        <div class="cart-item">
+                            <div class="cart-item-info">
+                                <h3>${item.MEDICINE_NAME}</h3>
+                                <p>Price: $${item.PRICE}</p>
+                                <p>Quantity: ${item.QUANTITY}</p>
+                                <p><strong>Subtotal: $${(item.PRICE * item.QUANTITY).toFixed(2)}</strong></p>
+                            </div>
+                            <div class="cart-item-actions">
+                                <button onclick="updateQuantity(${item.ID}, ${item.QUANTITY + 1})">+</button>
+                                <button onclick="updateQuantity(${item.ID}, ${item.QUANTITY - 1})">-</button>
+                                <button onclick="removeFromCart(${item.ID})" class="remove-btn">Remove</button>
+                            </div>
+                        </div>
+                    `}).join('');
+                    cartTotal.innerHTML = `<h3>Total: $${total.toFixed(2)}</h3>`;
+                    checkoutBtn.style.display = 'block';
+                } else {
+                    cartList.innerHTML = '<p>Your cart is empty</p>';
+                    cartTotal.innerHTML = '';
+                    checkoutBtn.style.display = 'none';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('cartList').innerHTML = '<p>Error loading cart</p>';
+            }
+        }
+
+        async function updateQuantity(cartId, newQuantity) {
+            if (newQuantity < 1) {
+                removeFromCart(cartId);
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`http://localhost:3000/cart/${cartId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ quantity: newQuantity })
+                });
+
+                if (res.ok) {
+                    loadCart();
+                } else {
+                    alert('Failed to update quantity');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error updating cart');
+            }
+        }
+
+        async function removeFromCart(cartId) {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`http://localhost:3000/cart/${cartId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (res.ok) {
+                    loadCart();
+                } else {
+                    alert('Failed to remove item');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error removing item');
+            }
+        }
+
+        document.getElementById('checkoutBtn').addEventListener('click', () => {
+            window.location.href = 'checkout.HTML';
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = 'login.HTML';
+        });
+
+        loadUser();
+        loadCart();
+    </script>
+</body>
+</html>

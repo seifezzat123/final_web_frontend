@@ -8,6 +8,8 @@
     <div class="navbar">
         <h1>Medicine Store</h1>
         <div class="nav-links">
+            <a href="home.HTML">Home</a>
+            <a href="cart.HTML">Cart</a>
             <span id="welcomeText">Loading...</span>
             <button id="logoutBtn">Logout</button>
         </div>
@@ -74,8 +76,28 @@
             }
         }
 
-        function addToCart(medicineId) {
-            alert('Medicine added to cart! (Cart functionality coming soon)');
+        async function addToCart(medicineId) {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('http://localhost:3000/cart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ medicine_id: medicineId, quantity: 1 })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    alert('Medicine added to cart!');
+                } else {
+                    alert(data.error || 'Failed to add to cart');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error adding to cart');
+            }
         }
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
