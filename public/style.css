@@ -370,3 +370,62 @@ button:hover{
     color: #555;
     font-size: 14px;
 }
+
+.feedback-btn{
+    background: #f39c12 !important;
+    margin-top: 5px;
+}
+
+.feedback-btn:hover{
+    background: #e67e22 !important;
+}
+
+.modal{
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content{
+    background-color: #ffffff;
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.close{
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover{
+    color: #000;
+}
+
+.modal-content h2{
+    margin-top: 0;
+    color: #667eea;
+}
+
+textarea{
+    width: 100%;
+    padding: 10px;
+    margin-top: 6px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+    resize: vertical;
+}
