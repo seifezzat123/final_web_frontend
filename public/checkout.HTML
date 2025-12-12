@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Checkout</title>
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+    <div class="navbar">
+        <h1>Medicine Store</h1>
+        <div class="nav-links">
+            <a href="home.HTML">Home</a>
+            <a href="cart.HTML">Cart</a>
+            <span id="welcomeText">Loading...</span>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </div>
+    <div class="main-content">
+        <h2>Checkout</h2>
+        <div class="checkout-container">
+            <div class="order-summary" id="orderSummary"></div>
+            <form id="checkoutForm" class="checkout-form">
+                <h3>Shipping Address</h3>
+                <div class="input-group">
+                    <label>Street</label>
+                    <input type="text" id="street" required/>
+                </div>
+                <div class="input-group">
+                    <label>City</label>
+                    <input type="text" id="city" required/>
+                </div>
+                <div class="input-group">
+                    <label>State</label>
+                    <input type="text" id="state" required/>
+                </div>
+                <div class="input-group">
+                    <label>Postal Code</label>
+                    <input type="text" id="postal_code" required/>
+                </div>
+                <button type="submit">Place Order</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        async function loadUser() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = 'login.HTML';
+                    return;
+                }
+
+                const res = await fetch("http://localhost:3000/auth/me", {
+                    method: "GET",
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: "include"
+                });
+
+                const data = await res.json();
+                if (data.user) {
+                    document.getElementById("welcomeText").textContent = "Welcome " + data.user.NAME;
+                } else {
+                    window.location.href = 'login.HTML';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById("welcomeText").textContent = "Cannot connect to server";
+            }
+        }
+
+        async function loadOrderSummary() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch("http://localhost:3000/cart/my-cart", {
+                    method: "GET",
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await res.json();
+                const orderSummary = document.getElementById('orderSummary');
+                
+                if (data.data && data.data.length > 0) {
+                    let total = 0;
+                    let itemsHTML = '<h3>Order Summary</h3>';
+                    data.data.forEach(item => {
+                        total += item.PRICE * item.QUANTITY;
+                        itemsHTML += `
+                            <div class="summary-item">
+                                <span>${item.MEDICINE_NAME} x ${item.QUANTITY}</span>
+                                <span>$${(item.PRICE * item.QUANTITY).toFixed(2)}</span>
+                            </div>
+                        `;
+                    });
+                    itemsHTML += `<div class="summary-total"><strong>Total: $${total.toFixed(2)}</strong></div>`;
+                    orderSummary.innerHTML = itemsHTML;
+                } else {
+                    orderSummary.innerHTML = '<p>Your cart is empty</p>';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('orderSummary').innerHTML = '<p>Error loading order summary</p>';
+            }
+        }
+
+        document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const street = document.getElementById('street').value.trim();
+            const city = document.getElementById('city').value.trim();
+            const state = document.getElementById('state').value.trim();
+            const postal_code = document.getElementById('postal_code').value.trim();
+
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('http://localhost:3000/order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ street, city, state, postal_code })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    alert('Order placed successfully!');
+                    window.location.href = 'orders.HTML';
+                } else {
+                    alert(data.error || 'Failed to place order');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error placing order');
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = 'login.HTML';
+        });
+
+        loadUser();
+        loadOrderSummary();
+    </script>
+</body>
+</html>

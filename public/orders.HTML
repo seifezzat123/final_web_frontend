@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Home</title>
+    <title>My Orders</title>
     <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -16,8 +16,8 @@
         </div>
     </div>
     <div class="main-content">
-        <h2>Available Medicines</h2>
-        <div id="medicineList" class="medicine-grid"></div>
+        <h2>My Orders</h2>
+        <div id="ordersList" class="orders-container"></div>
     </div>
     <script>
         async function loadUser() {
@@ -48,56 +48,38 @@
             }
         }
 
-        async function loadMedicines() {
+        async function loadOrders() {
             try {
-                const res = await fetch("http://localhost:3000/medicine", {
-                    method: "GET"
+                const token = localStorage.getItem('token');
+                const res = await fetch("http://localhost:3000/order/my-orders", {
+                    method: "GET",
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
 
                 const data = await res.json();
-                const medicineList = document.getElementById('medicineList');
+                const ordersList = document.getElementById('ordersList');
                 
                 if (data.data && data.data.length > 0) {
-                    medicineList.innerHTML = data.data.map(med => `
-                        <div class="medicine-card">
-                            <h3>${med.NAME}</h3>
-                            <p><strong>Price:</strong> $${med.PRICE}</p>
-                            <p><strong>Stock:</strong> ${med.STOCK}</p>
-                            <p><strong>Description:</strong> ${med.DESCRIPTION || 'N/A'}</p>
-                            <p><strong>Expiry:</strong> ${med.EXPIRY_DATE || 'N/A'}</p>
-                            <button onclick="addToCart(${med.ID})">Add to Cart</button>
+                    ordersList.innerHTML = data.data.map(order => `
+                        <div class="order-card">
+                            <div class="order-header">
+                                <h3>Order #${order.ID}</h3>
+                                <span class="order-status status-${order.STATUS}">${order.STATUS}</span>
+                            </div>
+                            <p><strong>Total Amount:</strong> $${order.TOTAL_AMOUNT}</p>
+                            <p><strong>Shipping Address:</strong><br/>
+                            ${order.STREET}, ${order.CITY}, ${order.STATE} ${order.POSTAL_CODE}</p>
+                            <p><strong>Order Date:</strong> ${new Date(order.CREATED_AT).toLocaleDateString()}</p>
                         </div>
                     `).join('');
                 } else {
-                    medicineList.innerHTML = '<p>No medicines available</p>';
+                    ordersList.innerHTML = '<p>No orders found</p>';
                 }
             } catch (err) {
                 console.error(err);
-                document.getElementById('medicineList').innerHTML = '<p>Error loading medicines</p>';
-            }
-        }
-
-        async function addToCart(medicineId) {
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:3000/cart', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ medicine_id: medicineId, quantity: 1 })
-                });
-
-                const data = await res.json();
-                if (res.ok) {
-                    alert('Medicine added to cart!');
-                } else {
-                    alert(data.error || 'Failed to add to cart');
-                }
-            } catch (err) {
-                console.error(err);
-                alert('Error adding to cart');
+                document.getElementById('ordersList').innerHTML = '<p>Error loading orders</p>';
             }
         }
 
@@ -107,7 +89,7 @@
         });
 
         loadUser();
-        loadMedicines();
+        loadOrders();
     </script>
 </body>
 </html>
