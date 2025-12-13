@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+    <div class="navbar">
+        <h1>3ALEGNY Store - Admin Dashboard</h1>
+        <div class="nav-links">
+            <a href="admin.HTML">Dashboard</a>
+            <span id="welcomeText">Loading...</span>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </div>
+    <div class="main-content">
+        <h2>Admin Panel</h2>
+        
+        <!-- Statistics Cards -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <h3>Total Users</h3>
+                <p id="totalUsers" class="stat-number">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Medicines</h3>
+                <p id="totalMedicines" class="stat-number">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Orders</h3>
+                <p id="totalOrders" class="stat-number">0</p>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('users')">Users</button>
+            <button class="tab-btn" onclick="showTab('medicines')">Medicines</button>
+            <button class="tab-btn" onclick="showTab('orders')">Orders</button>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="usersTab" class="tab-content active">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>All Users</h3>
+                <button onclick="showAddUserModal()" class="primary-btn">Add New User</button>
+            </div>
+            <div id="usersList" class="data-list"></div>
+        </div>
+
+        <!-- Medicines Tab -->
+        <div id="medicinesTab" class="tab-content">
+            <h3>All Medicines</h3>
+            <div id="medicinesList" class="data-list"></div>
+        </div>
+
+        <!-- Orders Tab -->
+        <div id="ordersTab" class="tab-content">
+            <h3>All Orders</h3>
+            <div id="ordersList" class="data-list"></div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddUserModal()">&times;</span>
+            <h2>Add New User</h2>
+            <form id="addUserForm">
+                <div class="input-group">
+                    <label>Name</label>
+                    <input type="text" id="userName" required/>
+                </div>
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="userEmail" required/>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="userPassword" minlength="6" required/>
+                </div>
+                <div class="input-group">
+                    <label>Role</label>
+                    <select id="userRole" required>
+                        <option value="">Select Role</option>
+                        <option value="buyer">Buyer</option>
+                        <option value="seller">Seller</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <button type="submit">Add User</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'users';
+
+        async function loadUser() {
+            const token = localStorage.getItem('token');
+            const role = localStorage.getItem('userRole');
+            
+            if (!token) {
+                window.location.href = 'login.HTML';
+                return;
+            }
+            
+            if (role !== 'admin') {
+                alert('Access denied. Admins only.');
+                window.location.href = 'home.HTML';
+                return;
+            }
+            
+            document.getElementById("welcomeText").textContent = "Welcome Admin";
+        }
+
+        function showTab(tabName) {
+            currentTab = tabName;
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+            
+            // Load data for the tab
+            if (tabName === 'users') loadUsers();
+            else if (tabName === 'medicines') loadMedicines();
+            else if (tabName === 'orders') loadOrders();
+        }
+
+        async function loadUsers() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('http://localhost:3000/user', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!res.ok) {
+                    throw new Error('Failed to fetch users');
+                }
+                
+                const data = await res.json();
+                const list = document.getElementById('usersList');
+                
+                if (data.data && data.data.length > 0) {
+                    document.getElementById('totalUsers').textContent = data.data.length;
+                    list.innerHTML = data.data.map(user => `
+                        <div class="data-card">
+                            <h4>${user.NAME || user.USER_NAME || 'Unknown'}</h4>
+                            <p><strong>Email:</strong> ${user.EMAIL}</p>
+                            <p><strong>Role:</strong> <span class="role-badge ${user.ROLE}">${user.ROLE}</span></p>
+                            <p><strong>ID:</strong> ${user.USER_ID || user.ID}</p>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = '<p>No users found or endpoint not available</p>';
+                }
+            } catch (err) {
+                console.error('Error loading users:', err);
+                document.getElementById('usersList').innerHTML = '<p>User management not available. Backend endpoint may not exist.</p>';
+            }
+        }
+
+        async function loadMedicines() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('http://localhost:3000/medicine', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await res.json();
+                const list = document.getElementById('medicinesList');
+                
+                if (data.data && data.data.length > 0) {
+                    document.getElementById('totalMedicines').textContent = data.data.length;
+                    list.innerHTML = data.data.map(med => `
+                        <div class="data-card">
+                            <h4>${med.NAME || med.MEDICINE_NAME}</h4>
+                            <p><strong>Description:</strong> ${med.DESCRIPTION}</p>
+                            <p><strong>Price:</strong> $${med.PRICE}</p>
+                            <p><strong>Stock:</strong> ${med.STOCK || med.STOCK_QUANTITY}</p>
+                            <p><strong>Expiry:</strong> ${med.EXPIRY_DATE || 'N/A'}</p>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = '<p>No medicines found</p>';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('medicinesList').innerHTML = '<p>Error loading medicines</p>';
+            }
+        }
+
+        async function loadOrders() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('http://localhost:3000/order/all', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await res.json();
+                const list = document.getElementById('ordersList');
+                
+                if (data.data && data.data.length > 0) {
+                    document.getElementById('totalOrders').textContent = data.data.length;
+                    list.innerHTML = data.data.map(order => `
+                        <div class="data-card">
+                            <h4>Order #${order.ORDER_ID || order.ID}</h4>
+                            <p><strong>Total:</strong> $${order.TOTAL || order.TOTAL_PRICE || 'N/A'}</p>
+                            <p><strong>Status:</strong> <span class="status-badge ${order.STATUS}">${order.STATUS}</span></p>
+                            <p><strong>Date:</strong> ${order.ORDER_DATE || order.CREATED_AT || 'N/A'}</p>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = '<p>No orders found</p>';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('ordersList').innerHTML = '<p>Error loading orders</p>';
+            }
+        }
+function showAddUserModal() {
+            document.getElementById('addUserModal').style.display = 'flex';
+        }
+
+        function closeAddUserModal() {
+            document.getElementById('addUserModal').style.display = 'none';
+            document.getElementById('addUserForm').reset();
+        }
+
+        document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userData = {
+                name: document.getElementById('userName').value.trim(),
+                email: document.getElementById('userEmail').value.trim(),
+                password: document.getElementById('userPassword').value.trim(),
+                role: document.getElementById('userRole').value
+            };
+            
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('http://localhost:3000/auth/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(userData)
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    alert('User added successfully');
+                    closeAddUserModal();
+                    loadUsers();
+                } else {
+                    alert(data.error || 'Failed to add user');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error adding user');
+            }
+        });
+
+        async function deleteUser(userId) {
+            if (!confirm('Are you sure you want to delete this user?')) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`http://localhost:3000/user/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    alert('User deleted successfully');
+                    loadUsers();
+                } else {
+                    const data = await res.json();
+                    alert(data.error || 'Failed to delete user');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error deleting user');
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('addUserModal');
+            if (event.target == modal) {
+                closeAddUserModal();
+            }
+        }
+
+        
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            window.location.href = 'login.HTML';
+        });
+
+        loadUser();
+        loadUsers();
+    </script>
+</body>
+</html>

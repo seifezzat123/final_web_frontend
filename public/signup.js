@@ -35,6 +35,8 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
             // Redirect based on role
             if (role === 'seller') {
                 window.location.href = 'seller.HTML';
+            } else if (role === 'admin') {
+                window.location.href = 'admin.HTML';
             } else {
                 window.location.href = 'home.HTML';
             }

@@ -34,6 +34,8 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 localStorage.setItem('userRole', existingRole);
                 if (existingRole === 'seller') {
                     window.location.href = 'seller.HTML';
+                } else if (existingRole === 'admin') {
+                    window.location.href = 'admin.HTML';
                 } else {
                     window.location.href = 'home.HTML';
                 }
