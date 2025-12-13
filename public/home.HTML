@@ -20,35 +20,7 @@
         <div id="medicineList" class="medicine-grid"></div>
     </div>
 
-    <div id="feedbackModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeFeedbackForm()">&times;</span>
-            <h2>Leave Feedback</h2>
-            <form id="feedbackForm">
-                <input type="hidden" id="feedbackMedicineId"/>
-                <div class="input-group">
-                    <label>Medicine</label>
-                    <input type="text" id="feedbackMedicineName" readonly/>
-                </div>
-                <div class="input-group">
-                    <label>Rating (1-5)</label>
-                    <select id="feedbackRating" required>
-                        <option value="">Select Rating</option>
-                        <option value="1">1 - Poor</option>
-                        <option value="2">2 - Fair</option>
-                        <option value="3">3 - Good</option>
-                        <option value="4">4 - Very Good</option>
-                        <option value="5">5 - Excellent</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>Comment</label>
-                    <textarea id="feedbackComment" rows="4" required></textarea>
-                </div>
-                <button type="submit">Submit Feedback</button>
-            </form>
-        </div>
-    </div>
+
     <script>
         async function loadUser() {
             const token = localStorage.getItem('token');
@@ -97,7 +69,6 @@
                             <p><strong>Description:</strong> ${med.DESCRIPTION || 'N/A'}</p>
                             <p><strong>Expiry:</strong> ${med.EXPIRY_DATE || 'N/A'}</p>
                             <button onclick="addToCart(${med.ID})">Add to Cart</button>
-                            <button onclick="showFeedbackForm(${med.ID}, '${med.NAME.replace(/'/g, "\\'")}')" class="feedback-btn">Leave Review</button>
                         </div>
                     `).join('');
                 } else {
@@ -133,59 +104,10 @@
             }
         }
 
-        function showFeedbackForm(medicineId, medicineName) {
-            document.getElementById('feedbackMedicineId').value = medicineId;
-            document.getElementById('feedbackMedicineName').value = medicineName;
-            document.getElementById('feedbackModal').style.display = 'block';
-        }
-
-        function closeFeedbackForm() {
-            document.getElementById('feedbackModal').style.display = 'none';
-            document.getElementById('feedbackForm').reset();
-        }
-
-        document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const medicine_id = document.getElementById('feedbackMedicineId').value;
-            const rating = document.getElementById('feedbackRating').value;
-            const comment = document.getElementById('feedbackComment').value.trim();
-
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:3000/feedback', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ medicine_id, rating, comment })
-                });
-
-                const data = await res.json();
-                if (res.ok) {
-                    alert('Feedback submitted successfully!');
-                    closeFeedbackForm();
-                } else {
-                    alert(data.error || 'Failed to submit feedback');
-                }
-            } catch (err) {
-                console.error(err);
-                alert('Error submitting feedback');
-            }
-        });
-
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('token');
             window.location.href = 'login.HTML';
         });
-
-        window.onclick = function(event) {
-            const modal = document.getElementById('feedbackModal');
-            if (event.target == modal) {
-                closeFeedbackForm();
-            }
-        }
 
         loadUser();
         loadMedicines();

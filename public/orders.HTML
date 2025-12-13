@@ -19,6 +19,39 @@
         <h2>My Orders</h2>
         <div id="ordersList" class="orders-container"></div>
     </div>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeFeedbackModal()">&times;</span>
+            <h2>Feedback</h2>
+            <form id="feedbackForm">
+                <div class="input-group">
+                    <label>Select Medicine</label>
+                    <select id="feedbackMedicineId" required>
+                        <option value="">Choose medicine...</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Rating (1-5)</label>
+                    <select id="feedbackRating" required>
+                        <option value="">Select Rating</option>
+                        <option value="1">1 - Poor</option>
+                        <option value="2">2 - Fair</option>
+                        <option value="3">3 - Good</option>
+                        <option value="4">4 - Very Good</option>
+                        <option value="5">5 - Excellent</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Comment</label>
+                    <textarea id="feedbackComment" rows="4" required></textarea>
+                </div>
+                <button type="submit">Submit Feedback</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         async function loadUser() {
             const token = localStorage.getItem('token');
@@ -47,12 +80,13 @@
                         <div class="order-card">
                             <div class="order-header">
                                 <h3>Order #${order.ID}</h3>
-                                <span class="order-status status-${order.STATUS}">${order.STATUS}</span>
+                                <span class="order-status status-${order.STATUS}">${order.STATUS.toUpperCase()}</span>
                             </div>
-                            <p><strong>Total Amount:</strong> $${order.TOTAL_AMOUNT}</p>
+                            <p><strong>Total Amount:</strong> $${order.TOTAL_PRICE}</p>
                             <p><strong>Shipping Address:</strong><br/>
-                            ${order.STREET}, ${order.CITY}, ${order.STATE} ${order.POSTAL_CODE}</p>
+                            ${order.STREET}, Building ${order.BUILDING}, Floor ${order.FLOOR}, Apt ${order.APARTMENT}</p>
                             <p><strong>Order Date:</strong> ${new Date(order.CREATED_AT).toLocaleDateString()}</p>
+                            <button onclick="showFeedbackModal(${order.ID})" class="feedback-btn">Feedback</button>
                         </div>
                     `).join('');
                 } else {
@@ -61,6 +95,86 @@
             } catch (err) {
                 console.error(err);
                 document.getElementById('ordersList').innerHTML = '<p>Error loading orders</p>';
+            }
+        }
+
+        async function showFeedbackModal(orderId) {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`http://localhost:3000/order/${orderId}/items`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await res.json();
+                const select = document.getElementById('feedbackMedicineId');
+                
+                // Clear and populate medicine dropdown
+                select.innerHTML = '<option value="">Choose medicine...</option>';
+                
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.MEDICINE_ID;
+                        option.textContent = item.MEDICINE_NAME;
+                        select.appendChild(option);
+                    });
+                }
+                
+                document.getElementById('feedbackModal').style.display = 'block';
+            } catch (err) {
+                console.error(err);
+                alert('Error loading order items');
+            }
+        }
+
+        function closeFeedbackModal() {
+            document.getElementById('feedbackModal').style.display = 'none';
+            document.getElementById('feedbackForm').reset();
+        }
+
+        document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const medicine_id = document.getElementById('feedbackMedicineId').value;
+            const rating = document.getElementById('feedbackRating').value;
+            const comment = document.getElementById('feedbackComment').value.trim();
+
+            if (!medicine_id) {
+                alert('Please select a medicine');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('http://localhost:3000/feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ medicine_id, rating, comment })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    alert('Feedback submitted successfully!');
+                    closeFeedbackModal();
+                } else {
+                    alert(data.error || 'Failed to submit feedback');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error submitting feedback');
+            }
+        });
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('feedbackModal');
+            if (event.target == modal) {
+                closeFeedbackModal();
             }
         }
 
