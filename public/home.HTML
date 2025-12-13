@@ -51,31 +51,15 @@
     </div>
     <script>
         async function loadUser() {
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    window.location.href = 'login.HTML';
-                    return;
-                }
-
-                const res = await fetch("http://localhost:3000/auth/me", {
-                    method: "GET",
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    credentials: "include"
-                });
-
-                const data = await res.json();
-                if (data.user) {
-                    document.getElementById("welcomeText").textContent = "Welcome " + data.user.NAME;
-                } else {
-                    window.location.href = 'login.HTML';
-                }
-            } catch (err) {
-                console.error(err);
-                document.getElementById("welcomeText").textContent = "Cannot connect to server";
+            const token = localStorage.getItem('token');
+            console.log('Token from localStorage:', token);
+            if (!token) {
+                console.log('No token found, redirecting to login');
+                window.location.href = 'login.HTML';
+                return;
             }
+            console.log('Token found, staying on home page');
+            document.getElementById("welcomeText").textContent = "Welcome User";
         }
 
         async function loadMedicines() {
@@ -122,13 +106,13 @@
 
                 const data = await res.json();
                 if (res.ok) {
-                    alert('Medicine added to cart!');
+                    alert('✅ Medicine added to cart successfully!');
                 } else {
-                    alert(data.error || 'Failed to add to cart');
+                    alert('❌ ' + (data.error || 'Failed to add to cart'));
                 }
             } catch (err) {
                 console.error(err);
-                alert('Error adding to cart');
+                alert('❌ Error adding to cart');
             }
         }
 

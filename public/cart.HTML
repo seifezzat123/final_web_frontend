@@ -23,31 +23,12 @@
     </div>
     <script>
         async function loadUser() {
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    window.location.href = 'login.HTML';
-                    return;
-                }
-
-                const res = await fetch("http://localhost:3000/auth/me", {
-                    method: "GET",
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    credentials: "include"
-                });
-
-                const data = await res.json();
-                if (data.user) {
-                    document.getElementById("welcomeText").textContent = "Welcome " + data.user.NAME;
-                } else {
-                    window.location.href = 'login.HTML';
-                }
-            } catch (err) {
-                console.error(err);
-                document.getElementById("welcomeText").textContent = "Cannot connect to server";
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.HTML';
+                return;
             }
+            document.getElementById("welcomeText").textContent = "Welcome User";
         }
 
         async function loadCart() {

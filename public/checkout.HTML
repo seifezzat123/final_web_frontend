@@ -25,16 +25,16 @@
                     <input type="text" id="street" required/>
                 </div>
                 <div class="input-group">
-                    <label>City</label>
-                    <input type="text" id="city" required/>
+                    <label>Building</label>
+                    <input type="text" id="building" required/>
                 </div>
                 <div class="input-group">
-                    <label>State</label>
-                    <input type="text" id="state" required/>
+                    <label>Floor</label>
+                    <input type="text" id="floor" required/>
                 </div>
                 <div class="input-group">
-                    <label>Postal Code</label>
-                    <input type="text" id="postal_code" required/>
+                    <label>Apartment</label>
+                    <input type="text" id="apartment" required/>
                 </div>
                 <button type="submit">Place Order</button>
             </form>
@@ -42,31 +42,12 @@
     </div>
     <script>
         async function loadUser() {
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    window.location.href = 'login.HTML';
-                    return;
-                }
-
-                const res = await fetch("http://localhost:3000/auth/me", {
-                    method: "GET",
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    credentials: "include"
-                });
-
-                const data = await res.json();
-                if (data.user) {
-                    document.getElementById("welcomeText").textContent = "Welcome " + data.user.NAME;
-                } else {
-                    window.location.href = 'login.HTML';
-                }
-            } catch (err) {
-                console.error(err);
-                document.getElementById("welcomeText").textContent = "Cannot connect to server";
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.HTML';
+                return;
             }
+            document.getElementById("welcomeText").textContent = "Welcome User";
         }
 
         async function loadOrderSummary() {
@@ -109,31 +90,53 @@
             e.preventDefault();
             
             const street = document.getElementById('street').value.trim();
-            const city = document.getElementById('city').value.trim();
-            const state = document.getElementById('state').value.trim();
-            const postal_code = document.getElementById('postal_code').value.trim();
+            const building = document.getElementById('building').value.trim();
+            const floor = document.getElementById('floor').value.trim();
+            const apartment = document.getElementById('apartment').value.trim();
 
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:3000/order', {
+                
+                // Get the cart items first
+                const cartRes = await fetch("http://localhost:3000/cart/my-cart", {
+                    method: "GET",
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const cartData = await cartRes.json();
+                
+                if (!cartData.data || cartData.data.length === 0) {
+                    alert('Your cart is empty!');
+                    return;
+                }
+                
+                // Use cart_id = 1 as a placeholder (backend should handle this)
+                // and create order with address details embedded
+                const orderRes = await fetch('http://localhost:3000/order', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ street, city, state, postal_code })
+                    body: JSON.stringify({ 
+                        address_id: 1,  // placeholder
+                        cart_id: 1,     // placeholder
+                        street, 
+                        building, 
+                        floor, 
+                        apartment
+                    })
                 });
 
-                const data = await res.json();
-                if (res.ok) {
-                    alert('Order placed successfully!');
+                const orderData = await orderRes.json();
+                if (orderRes.ok) {
+                    alert('✅ Order placed successfully!');
                     window.location.href = 'orders.HTML';
                 } else {
-                    alert(data.error || 'Failed to place order');
+                    alert('❌ ' + (orderData.error || 'Failed to place order'));
                 }
             } catch (err) {
                 console.error(err);
-                alert('Error placing order');
+                alert('❌ Error placing order');
             }
         });
 
