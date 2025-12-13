@@ -651,6 +651,11 @@ textarea{
     color: white;
 }
 
+.status-badge.confirmed{
+    background: #28a745;
+    color: white;
+}
+
 .status-badge.cancelled{
     background: #dc3545;
     color: white;

@@ -10,21 +10,38 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             body: JSON.stringify({ email, password })
         });
         const data = await res.json();
+        console.log('Login response:', data);
         if (res.ok) {
             localStorage.setItem('token', data.token);
             
             // Check if backend returns role in login response
-            if (data.user && data.user.ROLE) {
+            if (data.user && data.user.role) {
+                console.log('Setting role from data.user.role:', data.user.role);
+                localStorage.setItem('userRole', data.user.role);
+                if (data.user.role === 'seller') {
+                    window.location.href = 'seller.HTML';
+                } else if (data.user.role === 'admin') {
+                    window.location.href = 'admin.HTML';
+                } else {
+                    window.location.href = 'home.HTML';
+                }
+            } else if (data.user && data.user.ROLE) {
+                console.log('Setting role from data.user.ROLE:', data.user.ROLE);
                 localStorage.setItem('userRole', data.user.ROLE);
                 if (data.user.ROLE === 'seller') {
                     window.location.href = 'seller.HTML';
+                } else if (data.user.ROLE === 'admin') {
+                    window.location.href = 'admin.HTML';
                 } else {
                     window.location.href = 'home.HTML';
                 }
             } else if (data.role) {
+                console.log('Setting role from data.role:', data.role);
                 localStorage.setItem('userRole', data.role);
                 if (data.role === 'seller') {
                     window.location.href = 'seller.HTML';
+                } else if (data.role === 'admin') {
+                    window.location.href = 'admin.HTML';
                 } else {
                     window.location.href = 'home.HTML';
                 }

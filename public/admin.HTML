@@ -30,6 +30,10 @@
                 <h3>Total Orders</h3>
                 <p id="totalOrders" class="stat-number">0</p>
             </div>
+            <div class="stat-card">
+                <h3>Total Feedbacks</h3>
+                <p id="totalFeedbacks" class="stat-number">0</p>
+            </div>
         </div>
 
         <!-- Tab Navigation -->
@@ -37,6 +41,7 @@
             <button class="tab-btn active" onclick="showTab('users')">Users</button>
             <button class="tab-btn" onclick="showTab('medicines')">Medicines</button>
             <button class="tab-btn" onclick="showTab('orders')">Orders</button>
+            <button class="tab-btn" onclick="showTab('feedbacks')">Feedbacks</button>
         </div>
 
         <!-- Users Tab -->
@@ -58,6 +63,12 @@
         <div id="ordersTab" class="tab-content">
             <h3>All Orders</h3>
             <div id="ordersList" class="data-list"></div>
+        </div>
+
+        <!-- Feedbacks Tab -->
+        <div id="feedbacksTab" class="tab-content">
+            <h3>All Feedbacks</h3>
+            <div id="feedbacksList" class="data-list"></div>
         </div>
     </div>
 
@@ -167,6 +178,7 @@
             if (tabName === 'users') loadUsers();
             else if (tabName === 'medicines') loadMedicines();
             else if (tabName === 'orders') loadOrders();
+            else if (tabName === 'feedbacks') loadFeedbacks();
         }
 
         async function loadUsers() {
@@ -239,11 +251,12 @@
         async function loadOrders() {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:3000/order/all', {
+                const res = await fetch('http://localhost:3000/order', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
                 const data = await res.json();
+                console.log('Orders data:', data);
                 const list = document.getElementById('ordersList');
                 
                 if (data.data && data.data.length > 0) {
@@ -260,7 +273,7 @@
                                 <select onchange="updateOrderStatus(${order.ORDER_ID || order.ID}, this.value)" style="width: 100%; margin-top: 5px; padding: 8px;">
                                     <option value="">-- Change Status --</option>
                                     <option value="pending" ${order.STATUS === 'pending' ? 'selected' : ''}>Pending</option>
-                                    <option value="completed" ${order.STATUS === 'completed' ? 'selected' : ''}>Completed</option>
+                                    <option value="confirmed" ${order.STATUS === 'confirmed' ? 'selected' : ''}>Confirmed</option>
                                     <option value="cancelled" ${order.STATUS === 'cancelled' ? 'selected' : ''}>Cancelled</option>
                                 </select>
                             </div>
@@ -432,12 +445,46 @@ function showAddUserModal() {
             }
         }
 
+        async function loadFeedbacks() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch('http://localhost:3000/feedback', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await res.json();
+                console.log('Feedbacks data:', data);
+                const list = document.getElementById('feedbacksList');
+                
+                if (data.data && data.data.length > 0) {
+                    document.getElementById('totalFeedbacks').textContent = data.data.length;
+                    list.innerHTML = data.data.map(feedback => `
+                        <div class="data-card">
+                            <h4>${feedback.MEDICINE_NAME || 'Medicine #' + feedback.MEDICINE_ID}</h4>
+                            <p><strong>User:</strong> ${feedback.USER_NAME || 'User #' + feedback.USER_ID}</p>
+                            <p><strong>Rating:</strong> ${feedback.RATING}/5</p>
+                            <p><strong>Comment:</strong> ${feedback.COMMENT || 'No comment'}</p>
+                            <p><strong>Date:</strong> ${feedback.CREATED_AT || 'N/A'}</p>
+                        </div>
+                    `).join('');
+                } else {
+                    document.getElementById('totalFeedbacks').textContent = '0';
+                    list.innerHTML = '<p>No feedbacks found</p>';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('feedbacksList').innerHTML = '<p>Error loading feedbacks</p>';
+            }
+        }
+
         async function updateOrderStatus(orderId, newStatus) {
             if (!newStatus) return;
             
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch(`http://localhost:3000/order/${orderId}`, {
+                console.log('Updating order:', orderId, 'to status:', newStatus);
+                
+                const res = await fetch(`http://localhost:3000/order/${orderId}/status`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -446,17 +493,20 @@ function showAddUserModal() {
                     body: JSON.stringify({ status: newStatus })
                 });
                 
+                console.log('Response status:', res.status);
+                const data = await res.json();
+                console.log('Response data:', data);
+                
                 if (res.ok) {
                     alert('Order status updated successfully');
                     loadOrders();
                 } else {
-                    const data = await res.json();
-                    alert(data.error || 'Failed to update order status');
+                    alert(`Failed to update: ${data.error || data.message || 'Unknown error'}`);
                     loadOrders();
                 }
             } catch (err) {
-                console.error(err);
-                alert('Error updating order status');
+                console.error('Update error:', err);
+                alert('Error updating order status. Check console for details.');
                 loadOrders();
             }
         }
