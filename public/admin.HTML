@@ -93,6 +93,38 @@
         </div>
     </div>
 
+    <!-- Edit Medicine Modal -->
+    <div id="editMedicineModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditMedicineModal()">&times;</span>
+            <h2>Edit Medicine</h2>
+            <form id="editMedicineForm">
+                <input type="hidden" id="editMedicineId"/>
+                <div class="input-group">
+                    <label>Medicine Name</label>
+                    <input type="text" id="editMedicineName" required/>
+                </div>
+                <div class="input-group">
+                    <label>Description</label>
+                    <textarea id="editMedicineDescription" rows="3" required></textarea>
+                </div>
+                <div class="input-group">
+                    <label>Price ($)</label>
+                    <input type="number" id="editMedicinePrice" step="0.01" min="0" required/>
+                </div>
+                <div class="input-group">
+                    <label>Stock</label>
+                    <input type="number" id="editMedicineStock" min="0" required/>
+                </div>
+                <div class="input-group">
+                    <label>Expiry Date</label>
+                    <input type="date" id="editMedicineExpiry" required/>
+                </div>
+                <button type="submit">Update Medicine</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         let currentTab = 'users';
 
@@ -189,6 +221,10 @@
                             <p><strong>Price:</strong> $${med.PRICE}</p>
                             <p><strong>Stock:</strong> ${med.STOCK || med.STOCK_QUANTITY}</p>
                             <p><strong>Expiry:</strong> ${med.EXPIRY_DATE || 'N/A'}</p>
+                            <div class="button-group" style="margin-top: 10px;">
+                                <button onclick="editMedicine(${med.ID || med.MEDICINE_ID})" class="secondary-btn">Edit</button>
+                                <button onclick="deleteMedicine(${med.ID || med.MEDICINE_ID})" class="danger-btn">Delete</button>
+                            </div>
                         </div>
                     `).join('');
                 } else {
@@ -215,9 +251,19 @@
                     list.innerHTML = data.data.map(order => `
                         <div class="data-card">
                             <h4>Order #${order.ORDER_ID || order.ID}</h4>
+                            <p><strong>User ID:</strong> ${order.USER_ID || 'N/A'}</p>
                             <p><strong>Total:</strong> $${order.TOTAL || order.TOTAL_PRICE || 'N/A'}</p>
                             <p><strong>Status:</strong> <span class="status-badge ${order.STATUS}">${order.STATUS}</span></p>
                             <p><strong>Date:</strong> ${order.ORDER_DATE || order.CREATED_AT || 'N/A'}</p>
+                            <div style="margin-top: 10px;">
+                                <label style="font-size: 12px; color: #666;">Update Status:</label>
+                                <select onchange="updateOrderStatus(${order.ORDER_ID || order.ID}, this.value)" style="width: 100%; margin-top: 5px; padding: 8px;">
+                                    <option value="">-- Change Status --</option>
+                                    <option value="pending" ${order.STATUS === 'pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="completed" ${order.STATUS === 'completed' ? 'selected' : ''}>Completed</option>
+                                    <option value="cancelled" ${order.STATUS === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                                </select>
+                            </div>
                         </div>
                     `).join('');
                 } else {
@@ -287,20 +333,142 @@ function showAddUserModal() {
                     alert('User deleted successfully');
                     loadUsers();
                 } else {
-                    const data = await res.json();
-                    alert(data.error || 'Failed to delete user');
+                    const data = await res.json().catch(() => ({ error: 'Unknown error' }));
+                    alert(`Failed to delete user: ${data.error || res.statusText}`);
+                    console.error('Delete error:', data);
+                }
+            } catch (err) {
+                console.error('Delete user error:', err);
+                alert('User deletion is not available. Your backend may not have a user delete endpoint.');
+            }
+        }
+
+        async function editMedicine(medicineId) {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`http://localhost:3000/medicine/${medicineId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                if (data.data) {
+                    document.getElementById('editMedicineId').value = medicineId;
+                    document.getElementById('editMedicineName').value = data.data.NAME || data.data.MEDICINE_NAME;
+                    document.getElementById('editMedicineDescription').value = data.data.DESCRIPTION;
+                    document.getElementById('editMedicinePrice').value = data.data.PRICE;
+                    document.getElementById('editMedicineStock').value = data.data.STOCK || data.data.STOCK_QUANTITY;
+                    document.getElementById('editMedicineExpiry').value = data.data.EXPIRY_DATE || '';
+                    document.getElementById('editMedicineModal').style.display = 'flex';
                 }
             } catch (err) {
                 console.error(err);
-                alert('Error deleting user');
+                alert('Error loading medicine details');
+            }
+        }
+
+        function closeEditMedicineModal() {
+            document.getElementById('editMedicineModal').style.display = 'none';
+            document.getElementById('editMedicineForm').reset();
+        }
+
+        document.getElementById('editMedicineForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const medicineId = document.getElementById('editMedicineId').value;
+            const medicineData = {
+                name: document.getElementById('editMedicineName').value.trim(),
+                description: document.getElementById('editMedicineDescription').value.trim(),
+                price: parseFloat(document.getElementById('editMedicinePrice').value),
+                stock: parseInt(document.getElementById('editMedicineStock').value),
+                expiry_date: document.getElementById('editMedicineExpiry').value
+            };
+            
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`http://localhost:3000/medicine/${medicineId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(medicineData)
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    alert('Medicine updated successfully');
+                    closeEditMedicineModal();
+                    loadMedicines();
+                } else {
+                    alert(data.error || 'Failed to update medicine');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error updating medicine');
+            }
+        });
+
+        async function deleteMedicine(medicineId) {
+            if (!confirm('Are you sure you want to delete this medicine?')) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`http://localhost:3000/medicine/${medicineId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    alert('Medicine deleted successfully');
+                    loadMedicines();
+                } else {
+                    const data = await res.json();
+                    alert(data.error || 'Failed to delete medicine');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error deleting medicine');
+            }
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+            if (!newStatus) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`http://localhost:3000/order/${orderId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                if (res.ok) {
+                    alert('Order status updated successfully');
+                    loadOrders();
+                } else {
+                    const data = await res.json();
+                    alert(data.error || 'Failed to update order status');
+                    loadOrders();
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error updating order status');
+                loadOrders();
             }
         }
 
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('addUserModal');
-            if (event.target == modal) {
+            const userModal = document.getElementById('addUserModal');
+            const medicineModal = document.getElementById('editMedicineModal');
+            if (event.target == userModal) {
                 closeAddUserModal();
+            } else if (event.target == medicineModal) {
+                closeEditMedicineModal();
             }
         }
 
