@@ -12,7 +12,32 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         const data = await res.json();
         if (res.ok) {
             localStorage.setItem('token', data.token);
-            window.location.href = 'home.HTML';
+            
+            // Check if backend returns role in login response
+            if (data.user && data.user.ROLE) {
+                localStorage.setItem('userRole', data.user.ROLE);
+                if (data.user.ROLE === 'seller') {
+                    window.location.href = 'seller.HTML';
+                } else {
+                    window.location.href = 'home.HTML';
+                }
+            } else if (data.role) {
+                localStorage.setItem('userRole', data.role);
+                if (data.role === 'seller') {
+                    window.location.href = 'seller.HTML';
+                } else {
+                    window.location.href = 'home.HTML';
+                }
+            } else {
+                // Role not in response, keep existing role or default to buyer
+                const existingRole = localStorage.getItem('userRole') || 'buyer';
+                localStorage.setItem('userRole', existingRole);
+                if (existingRole === 'seller') {
+                    window.location.href = 'seller.HTML';
+                } else {
+                    window.location.href = 'home.HTML';
+                }
+            }
         } else {
             alert(data.error || 'Login failed');
         }

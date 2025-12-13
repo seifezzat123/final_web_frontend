@@ -2,6 +2,11 @@ body{
     margin:0;
     font-family: Arial, sans-serif;
     background: linear-gradient(135deg, #667eea, #764ba2);
+    min-height: 100vh;
+}
+
+/* Center content only for login/signup pages */
+body:has(.container){
     display: flex;
     justify-content: center;
     align-items: center;
@@ -135,6 +140,13 @@ button:hover{
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
+}
+
+.medicines-list{
+    display: flex;
+    flex-direction: column;
+    max-width: 400px;
+    margin: 0 auto;
 }
 
 .medicine-card{
@@ -444,4 +456,65 @@ textarea{
     box-sizing: border-box;
     font-family: Arial, sans-serif;
     resize: vertical;
+}
+
+.button-group{
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.button-group button{
+    width: auto;
+    flex: 1;
+    margin: 0;
+    padding: 8px 15px;
+}
+
+.primary-btn{
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.primary-btn:hover{
+    background: #5568d3;
+}
+
+.secondary-btn{
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.secondary-btn:hover{
+    background: #5a6268;
+}
+
+.danger-btn{
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.danger-btn:hover{
+    background: #c82333;
+}
+
+.stock{
+    color: #666;
+    font-size: 14px;
+    margin: 5px 0;
 }

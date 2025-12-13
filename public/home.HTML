@@ -52,12 +52,23 @@
     <script>
         async function loadUser() {
             const token = localStorage.getItem('token');
+            const role = localStorage.getItem('userRole');
+            
             console.log('Token from localStorage:', token);
+            console.log('Role from localStorage:', role);
+            
             if (!token) {
                 console.log('No token found, redirecting to login');
                 window.location.href = 'login.HTML';
                 return;
             }
+            
+            // Redirect sellers to seller dashboard
+            if (role === 'seller') {
+                window.location.href = 'seller.HTML';
+                return;
+            }
+            
             console.log('Token found, staying on home page');
             document.getElementById("welcomeText").textContent = "Welcome User";
         }
@@ -106,13 +117,13 @@
 
                 const data = await res.json();
                 if (res.ok) {
-                    alert('✅ Medicine added to cart successfully!');
+                    alert('Medicine added to cart successfully!');
                 } else {
-                    alert('❌ ' + (data.error || 'Failed to add to cart'));
+                    alert(data.error || 'Failed to add to cart');
                 }
             } catch (err) {
                 console.error(err);
-                alert('❌ Error adding to cart');
+                alert('Error adding to cart');
             }
         }
 

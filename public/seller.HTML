@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Seller Dashboard</title>
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+    <div class="navbar">
+        <h1>3ALEGNY Store - Seller Dashboard</h1>
+        <div class="nav-links">
+            <a href="seller.HTML">Medicines</a>
+            <a href="orders.HTML">Orders</a>
+            <span id="welcomeText">Loading...</span>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </div>
+    <div class="main-content">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <button onclick="showAddMedicineModal()" class="primary-btn" style="font-size: 18px; padding: 15px 40px;">Add New Medicine</button>
+        </div>
+        <h2>My Medicines</h2>
+        <div id="medicinesGrid" class="medicines-list"></div>
+    </div>
+
+    <!-- Add/Edit Medicine Modal -->
+    <div id="medicineModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeMedicineModal()">&times;</span>
+            <h2 id="modalTitle">Add Medicine</h2>
+            <form id="medicineForm">
+                <div class="input-group">
+                    <label>Medicine Name</label>
+                    <input type="text" id="medicineName" required/>
+                </div>
+                <div class="input-group">
+                    <label>Description</label>
+                    <textarea id="medicineDescription" rows="3" required></textarea>
+                </div>
+                <div class="input-group">
+                    <label>Price ($)</label>
+                    <input type="number" id="medicinePrice" step="0.01" min="0" required/>
+                </div>
+                <div class="input-group">
+                    <label>Stock Quantity</label>
+                    <input type="number" id="medicineStock" min="0" required/>
+                </div>
+                <div class="input-group">
+                    <label>Expiry Date</label>
+                    <input type="date" id="medicineExpiry" required/>
+                </div>
+                <button type="submit" id="submitBtn">Add Medicine</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let editingMedicineId = null;
+
+        async function loadUser() {
+            const token = localStorage.getItem('token');
+            const role = localStorage.getItem('userRole');
+            
+            if (!token) {
+                window.location.href = 'login.HTML';
+                return;
+            }
+            
+            if (role !== 'seller') {
+                alert('Access denied. Sellers only.');
+                window.location.href = 'home.HTML';
+                return;
+            }
+            
+            document.getElementById("welcomeText").textContent = "Welcome Seller";
+        }
+
+        async function loadMedicines() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch("http://localhost:3000/medicine", {
+                    method: "GET",
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await res.json();
+                const grid = document.getElementById('medicinesGrid');
+                
+                if (data.data && data.data.length > 0) {
+                    grid.innerHTML = data.data.map(med => `
+                        <div class="medicine-card" style="margin-bottom: 20px; text-align: center;">
+                            <h3 style="margin: 0 0 10px 0;">${med.NAME || med.MEDICINE_NAME || 'Unnamed Medicine'}</h3>
+                            <p class="description" style="margin: 5px 0; font-weight: bold; color: #667eea;">${med.DESCRIPTION || 'No description'}</p>
+                            <p class="price" style="margin: 5px 0; font-weight: bold; color: #667eea;">$${med.PRICE || '0.00'}</p>
+                            <p class="stock" style="margin: 5px 0; font-weight: bold; color: #667eea;">Stock: ${med.STOCK || med.STOCK_QUANTITY || 0}</p>
+                            <div class="button-group" style="margin-top: 15px;">
+                                <button onclick="editMedicine(${med.ID || med.MEDICINE_ID})" class="secondary-btn">Edit</button>
+                                <button onclick="deleteMedicine(${med.ID || med.MEDICINE_ID})" class="danger-btn">Delete</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    grid.innerHTML = '<p>No medicines yet. Add your first medicine!</p>';
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error loading medicines');
+            }
+        }
+
+        function showAddMedicineModal() {
+            editingMedicineId = null;
+            document.getElementById('modalTitle').textContent = 'Add Medicine';
+            document.getElementById('submitBtn').textContent = 'Add Medicine';
+            document.getElementById('medicineForm').reset();
+            document.getElementById('medicineModal').style.display = 'flex';
+        }
+
+        async function editMedicine(id) {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`http://localhost:3000/medicine/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                if (data.data) {
+                    editingMedicineId = id;
+                    document.getElementById('modalTitle').textContent = 'Edit Medicine';
+                    document.getElementById('submitBtn').textContent = 'Update Medicine';
+                    document.getElementById('medicineName').value = data.data.NAME || data.data.MEDICINE_NAME;
+                    document.getElementById('medicineDescription').value = data.data.DESCRIPTION;
+                    document.getElementById('medicinePrice').value = data.data.PRICE;
+                    document.getElementById('medicineStock').value = data.data.STOCK || data.data.STOCK_QUANTITY;
+                    document.getElementById('medicineExpiry').value = data.data.EXPIRY_DATE || '';
+                    document.getElementById('medicineModal').style.display = 'flex';
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error loading medicine details');
+            }
+        }
+
+        async function deleteMedicine(id) {
+            if (!confirm('Are you sure you want to delete this medicine?')) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`http://localhost:3000/medicine/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    alert('Medicine deleted successfully');
+                    loadMedicines();
+                } else {
+                    const data = await res.json();
+                    alert(data.error || 'Failed to delete medicine');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error deleting medicine');
+            }
+        }
+
+        function closeMedicineModal() {
+            document.getElementById('medicineModal').style.display = 'none';
+            editingMedicineId = null;
+        }
+
+        document.getElementById('medicineForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const medicineData = {
+                name: document.getElementById('medicineName').value.trim(),
+                description: document.getElementById('medicineDescription').value.trim(),
+                price: parseFloat(document.getElementById('medicinePrice').value),
+                stock: parseInt(document.getElementById('medicineStock').value),
+                expiry_date: document.getElementById('medicineExpiry').value
+            };
+            
+            try {
+                const token = localStorage.getItem('token');
+                const url = editingMedicineId 
+                    ? `http://localhost:3000/medicine/${editingMedicineId}`
+                    : 'http://localhost:3000/medicine';
+                
+                const res = await fetch(url, {
+                    method: editingMedicineId ? 'PUT' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(medicineData)
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    alert(editingMedicineId ? 'Medicine updated successfully' : 'Medicine added successfully');
+                    closeMedicineModal();
+                    loadMedicines();
+                } else {
+                    alert(data.error || 'Operation failed');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error saving medicine');
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            window.location.href = 'login.HTML';
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('medicineModal');
+            if (event.target == modal) {
+                closeMedicineModal();
+            }
+        }
+
+        loadUser();
+        loadMedicines();
+    </script>
+</body>
+</html>

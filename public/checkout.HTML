@@ -22,7 +22,7 @@
                 <h3>Shipping Address</h3>
                 
                 <!-- Saved Addresses Section -->
-                <div id="savedAddressesSection" style="display:none;">
+                <div id="savedAddressesSection">
                     <div class="input-group">
                         <label>Select Saved Address</label>
                         <select id="savedAddresses">
@@ -33,7 +33,7 @@
                 </div>
                 
                 <!-- New Address Form -->
-                <form id="addressForm">
+                <form id="addressForm" style="display:none;">
                     <div class="input-group">
                         <label>Street</label>
                         <input type="text" id="street" required/>
@@ -112,16 +112,12 @@
                 const addresses = localStorage.getItem('userAddresses');
                 if (addresses && addresses !== 'undefined' && addresses !== 'null') {
                     savedAddressesList = JSON.parse(addresses);
-                    if (savedAddressesList.length > 0) {
-                        displaySavedAddresses();
-                        return;
-                    }
                 }
-                // No addresses found, show form
-                showNewAddressForm();
+                // Always show the saved addresses section (even if empty)
+                displaySavedAddresses();
             } catch (err) {
                 console.error(err);
-                showNewAddressForm();
+                displaySavedAddresses();
             }
         }
 
@@ -132,6 +128,10 @@
             
             section.style.display = 'block';
             
+            // Clear existing options first
+            select.innerHTML = '<option value="">Choose an address...</option>';
+            
+            // Add saved addresses if any
             savedAddressesList.forEach((addr, index) => {
                 const option = document.createElement('option');
                 option.value = index;
@@ -165,16 +165,20 @@
                 apartment: document.getElementById('apartment').value.trim()
             };
             
-        loadSavedAddresses();
             // Save to localStorage
             savedAddressesList.push(newAddress);
             localStorage.setItem('userAddresses', JSON.stringify(savedAddressesList));
             
             selectedAddressId = savedAddressesList.length - 1;
-            alert('✅ Address saved!');
+            alert('Address saved!');
             
-            // Show place order button
+            // Hide form and reload addresses dropdown
             document.getElementById('addressForm').style.display = 'none';
+            displaySavedAddresses();
+            
+            // Auto-select the newly added address
+            document.getElementById('savedAddresses').value = selectedAddressId;
+            document.getElementById('savedAddressesSection').style.display = 'block';
             document.getElementById('placeOrderBtn').style.display = 'block';
         });
 
@@ -218,14 +222,14 @@
 
                 const orderData = await orderRes.json();
                 if (orderRes.ok) {
-                    alert('✅ Order placed successfully!');
+                    alert('Order placed successfully!');
                     window.location.href = 'orders.HTML';
                 } else {
-                    alert('❌ ' + (orderData.error || 'Failed to place order'));
+                    alert(orderData.error || 'Failed to place order');
                 }
             } catch (err) {
                 console.error(err);
-                alert('❌ Error placing order');
+                alert('Error placing order');
             }
         }
 
@@ -236,6 +240,7 @@
 
         loadUser();
         loadOrderSummary();
+        loadSavedAddresses();
     </script>
 </body>
 </html>

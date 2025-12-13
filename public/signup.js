@@ -17,11 +17,27 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
             credentials: 'include',
             body: JSON.stringify({ name, email, password, role })
         });
-        const data = await res.json();
+        
+        // Check if response is JSON
+        const contentType = res.headers.get('content-type');
+        let data;
+        if (contentType && contentType.includes('application/json')) {
+            data = await res.json();
+        } else {
+            const text = await res.text();
+            data = { error: text };
+        }
+        
         if (res.ok) {
             localStorage.setItem('token', data.token);
-            alert(data.message);
-            window.location.href = 'home.HTML';
+            localStorage.setItem('userRole', role);
+            alert(data.message || 'Signup successful!');
+            // Redirect based on role
+            if (role === 'seller') {
+                window.location.href = 'seller.HTML';
+            } else {
+                window.location.href = 'home.HTML';
+            }
         } else {
             alert(data.error || 'Signup failed');
         }
