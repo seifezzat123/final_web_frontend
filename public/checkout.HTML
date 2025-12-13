@@ -18,26 +18,44 @@
         <h2>Checkout</h2>
         <div class="checkout-container">
             <div class="order-summary" id="orderSummary"></div>
-            <form id="checkoutForm" class="checkout-form">
+            <div class="checkout-form">
                 <h3>Shipping Address</h3>
-                <div class="input-group">
-                    <label>Street</label>
-                    <input type="text" id="street" required/>
+                
+                <!-- Saved Addresses Section -->
+                <div id="savedAddressesSection" style="display:none;">
+                    <div class="input-group">
+                        <label>Select Saved Address</label>
+                        <select id="savedAddresses">
+                            <option value="">Choose an address...</option>
+                        </select>
+                    </div>
+                    <button type="button" onclick="showNewAddressForm()" class="secondary-btn">Add New Address</button>
                 </div>
-                <div class="input-group">
-                    <label>Building</label>
-                    <input type="text" id="building" required/>
-                </div>
-                <div class="input-group">
-                    <label>Floor</label>
-                    <input type="text" id="floor" required/>
-                </div>
-                <div class="input-group">
-                    <label>Apartment</label>
-                    <input type="text" id="apartment" required/>
-                </div>
-                <button type="submit">Place Order</button>
-            </form>
+                
+                <!-- New Address Form -->
+                <form id="addressForm">
+                    <div class="input-group">
+                        <label>Street</label>
+                        <input type="text" id="street" required/>
+                    </div>
+                    <div class="input-group">
+                        <label>Building</label>
+                        <input type="text" id="building" required/>
+                    </div>
+                    <div class="input-group">
+                        <label>Floor</label>
+                        <input type="text" id="floor" required/>
+                    </div>
+                    <div class="input-group">
+                        <label>Apartment</label>
+                        <input type="text" id="apartment" required/>
+                    </div>
+                    <button type="submit">Save Address & Continue</button>
+                </form>
+                
+                <!-- Place Order Button -->
+                <button id="placeOrderBtn" style="display:none;" onclick="placeOrder()">Place Order</button>
+            </div>
         </div>
     </div>
     <script>
@@ -86,16 +104,90 @@
             }
         }
 
-        document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
+        let savedAddressesList = [];
+        let selectedAddressId = null;
+
+        async function loadSavedAddresses() {
+            try {
+                const addresses = localStorage.getItem('userAddresses');
+                if (addresses && addresses !== 'undefined' && addresses !== 'null') {
+                    savedAddressesList = JSON.parse(addresses);
+                    if (savedAddressesList.length > 0) {
+                        displaySavedAddresses();
+                        return;
+                    }
+                }
+                // No addresses found, show form
+                showNewAddressForm();
+            } catch (err) {
+                console.error(err);
+                showNewAddressForm();
+            }
+        }
+
+        function displaySavedAddresses() {
+            const section = document.getElementById('savedAddressesSection');
+            const select = document.getElementById('savedAddresses');
+            const placeOrderBtn = document.getElementById('placeOrderBtn');
+            
+            section.style.display = 'block';
+            
+            savedAddressesList.forEach((addr, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${addr.street}, Building ${addr.building}, Floor ${addr.floor}, Apt ${addr.apartment}`;
+                select.appendChild(option);
+            });
+            
+            select.addEventListener('change', (e) => {
+                if (e.target.value !== '') {
+                    selectedAddressId = parseInt(e.target.value);
+                    placeOrderBtn.style.display = 'block';
+                } else {
+                    placeOrderBtn.style.display = 'none';
+                }
+            });
+        }
+
+        function showNewAddressForm() {
+            document.getElementById('savedAddressesSection').style.display = 'none';
+            document.getElementById('addressForm').style.display = 'block';
+            document.getElementById('placeOrderBtn').style.display = 'none';
+        }
+
+        document.getElementById('addressForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const street = document.getElementById('street').value.trim();
-            const building = document.getElementById('building').value.trim();
-            const floor = document.getElementById('floor').value.trim();
-            const apartment = document.getElementById('apartment').value.trim();
+            const newAddress = {
+                street: document.getElementById('street').value.trim(),
+                building: document.getElementById('building').value.trim(),
+                floor: document.getElementById('floor').value.trim(),
+                apartment: document.getElementById('apartment').value.trim()
+            };
+            
+        loadSavedAddresses();
+            // Save to localStorage
+            savedAddressesList.push(newAddress);
+            localStorage.setItem('userAddresses', JSON.stringify(savedAddressesList));
+            
+            selectedAddressId = savedAddressesList.length - 1;
+            alert('✅ Address saved!');
+            
+            // Show place order button
+            document.getElementById('addressForm').style.display = 'none';
+            document.getElementById('placeOrderBtn').style.display = 'block';
+        });
 
+        async function placeOrder() {
             try {
                 const token = localStorage.getItem('token');
+                
+                if (selectedAddressId === null) {
+                    alert('Please select an address!');
+                    return;
+                }
+                
+                const address = savedAddressesList[selectedAddressId];
                 
                 // Get the cart items first
                 const cartRes = await fetch("http://localhost:3000/cart/my-cart", {
@@ -109,8 +201,7 @@
                     return;
                 }
                 
-                // Use cart_id = 1 as a placeholder (backend should handle this)
-                // and create order with address details embedded
+                // Create order with selected address (backend should create address automatically)
                 const orderRes = await fetch('http://localhost:3000/order', {
                     method: 'POST',
                     headers: {
@@ -118,12 +209,10 @@
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({ 
-                        address_id: 1,  // placeholder
-                        cart_id: 1,     // placeholder
-                        street, 
-                        building, 
-                        floor, 
-                        apartment
+                        street: address.street,
+                        building: address.building,
+                        floor: address.floor,
+                        apartment: address.apartment
                     })
                 });
 
@@ -138,7 +227,7 @@
                 console.error(err);
                 alert('❌ Error placing order');
             }
-        });
+        }
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('token');
